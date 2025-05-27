@@ -6,7 +6,7 @@ intents:
     keywords: []
   relationship:
     action:
-      RelationshipAction
+      ImprovedRelationshipAction
     keywords:
       - between
       - relation
@@ -30,3 +30,12 @@ intents:
       - follow
       - friend
       - friends
+  find_similar:
+    action:
+      GNNAction
+    keywords:
+      - similar
+      - like
+      - comparable
+      - resemble
+      - alike
