@@ -1,12 +1,10 @@
 # **Nebula-SIWI Bot**
 
-*A clean, refactored ChatBot backend with optional RAG, lightweight Agent routing, and Gemini-style frontend.*
+*一个干净的、重构的ChatBot后端，可选的RAG、轻量级代理路由和Gemini风格的界面.*
 
 > 🚀 **本项目是对原始 GNN PoC 的彻底重构**：
 > 我将一个复杂且难以运行的 Nebula + PyG 实验仓库，改造成
 > **“单入口可复用的 ChatBot 后端 + 可插拔 RAG + Agent + Graph”**。
-> 目标是：快速部署、易扩展、便于后续产品化。
-
 ---
 
 ## 🧠 为什么要做这个项目
@@ -27,7 +25,7 @@
 ### 🔹 2)  RAG 系统
 
 * 文档自动扫描
-* TF-IDF + fallback 策略（无 Embedding 都能跑）
+* TF-IDF + fallback 策略
 * Top-K 段落检索
 * 上下文构造 + LLM 回答
 * 错误不崩溃，返回 sources 和 meta 信息
@@ -36,7 +34,7 @@
 
 * 意图分类 → 工具路由
 * 支持 TextRagTool / GraphTool
-* trace 记录整个决策链路（用于 Debug）
+* trace 记录整个决策链路
 
 ### 🔹 4) Graph & PyG 
 
@@ -67,7 +65,7 @@ data/demo_docs/   # built-in RAG documents
 
 ---
 
-## ⚡ 快速开始（≤3 步）
+## ⚡ 快速开始
 
 ### 1) 配置
 
