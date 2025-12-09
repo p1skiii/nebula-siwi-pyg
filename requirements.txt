@@ -1,12 +1,16 @@
-# filepath: /Users/wang/i/nebula-siwi/requirements.txt
-nebula3-python
-torch>=1.10.0
-torch-geometric>=2.0.0
-Flask==1.1.1
-jinja2<3.1.0
-itsdangerous==2.0.1
-werkzeug==2.0.3
-pyahocorasick==1.4.2
-click==7.1.2
-pyyaml
-gunicorn
+flask>=3.0.0
+gunicorn>=21.0.0
+numpy>=1.26.0
+scikit-learn>=1.3.0
+python-dotenv>=1.0.0
+google-generativeai>=0.8.0
+
+# Optional: install openai if you want to use a real LLM provider
+# openai>=1.0.0
+# Optional: Gemini client
+# google-generativeai>=0.8.0
+
+# Optional graph backend (NebulaGraph + PyG)
+# nebula3-python
+# torch>=2.1.0
+# torch-geometric>=2.3.0

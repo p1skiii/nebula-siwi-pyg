@@ -1,0 +1,1 @@
+Nebula SIWI Bot is a refreshed ChatBot backend. It focuses on a simple RAG pipeline: load local documents, retrieve relevant chunks, and generate answers. The service runs via Flask, exposes POST /api/chat, and ships with demo docs so it works out of the box.

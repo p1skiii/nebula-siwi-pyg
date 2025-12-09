@@ -1,163 +1,174 @@
-# Nebula-SIWI: NebulaGraph 与 PyTorch Geometric 集成
+# **Nebula-SIWI Bot**
 
-Nebula-SIWI 项目实现了 PyTorch Geometric (PyG) 的远程后端接口，使 PyG 能够直接与 NebulaGraph 图数据库交互，为图机器学习提供高效的数据访问层。
+*A clean, refactored ChatBot backend with optional RAG, lightweight Agent routing, and Gemini-style frontend.*
 
-## 项目概述
+> 🚀 **本项目是对原始 GNN PoC 的彻底重构**：
+> 我将一个复杂且难以运行的 Nebula + PyG 实验仓库，改造成
+> **“单入口可复用的 ChatBot 后端 + 可插拔 RAG + Agent + Graph”**。
+> 目标是：快速部署、易扩展、便于后续产品化。
 
-该项目提供了一个桥接层，实现了 PyG 的 `FeatureStore` 和 `GraphStore` 接口，使得 PyG 可以直接从 NebulaGraph 数据库中读取和操作图数据，而无需将整个图导出和加载到内存中。这对于处理大规模图数据特别有用。
+---
 
-### 核心功能
+## 🧠 为什么要做这个项目
 
-- **NebulaFeatureStore**: 实现了 PyG 的 `FeatureStore` 接口，负责从 NebulaGraph 获取节点特征
-- **NebulaGraphStore**: 实现了 PyG 的 `GraphStore` 接口，负责从 NebulaGraph 获取图结构（边）
-- **SubgraphSampler**: 高效地从 NebulaGraph 采样子图，支持多跳邻居采样
-- **SimpleNeighborLoader**: 提供简化的数据加载器，支持 PyG 的邻居采样模式
+* 原始仓库高度耦合（Flask、PyG、Nebula、BERT 混在一起），**难以复用、难以理解、无法开箱即用**
+* 我希望做一个**真正能跑**、**可演示**、**可逐步扩展**的 ChatBot 后端
+* 具备 **RAG / Agent / Graph** 的能力，为未来做 **Agentic Workflow / 多工具协作** 打基础
 
-## 架构设计
+---
+
+## ✨ 特性亮点
+
+### 🔹 1) 单一入口 `/api/chat`，默认 “LLM-only”
+
+* 统一接口 → 易集成到任意前端
+* LLM Provider 可随时切换（Mock / Gemini / OpenAI）
+
+### 🔹 2)  RAG 系统
+
+* 文档自动扫描
+* TF-IDF + fallback 策略（无 Embedding 都能跑）
+* Top-K 段落检索
+* 上下文构造 + LLM 回答
+* 错误不崩溃，返回 sources 和 meta 信息
+
+### 🔹 3) 极简 Agent SDK（可开关）
+
+* 意图分类 → 工具路由
+* 支持 TextRagTool / GraphTool
+* trace 记录整个决策链路（用于 Debug）
+
+### 🔹 4) Graph & PyG 
+
+* 不影响主线运行
+* 启用后可进行 1-hop 子图查询
+* 为 future GraphRAG 留扩展位
+
+### 🔹 5) 全新前端（Vite + Vue）
+
+* Gemini-style 极简气泡聊天 UI
+* 调用 `/api/chat` 即可使用
+* 前后端完全解耦
+
+---
+
+## 🧱 架构概述
 
 ```
-┌─────────────────────────────┐
-│       PyTorch Geometric     │
-│    (图神经网络模型和工具)      │
-└──────────────┬──────────────┘
-               │
-┌──────────────▼──────────────┐
-│ 远程后端接口 (Remote Backend) │
-│ FeatureStore    GraphStore  │
-└──────────────┬──────────────┘
-               │
-┌──────────────▼──────────────┐
-│     Nebula-SIWI 桥接层       │
-│                             │
-│  ├── NebulaFeatureStore     │
-│  ├── NebulaGraphStore       │
-│  ├── SubgraphSampler        │
-│  └── SimpleNeighborLoader   │
-└──────────────┬──────────────┘
-               │
-┌──────────────▼──────────────┐
-│        NebulaGraph          │
-│      (分布式图数据库)         │
-└─────────────────────────────┘
+frontend/         # Gemini-style chat UI
+   ↓ calls /api/chat
+backend/
+  siwi/api/       # Flask API, config, deps
+  siwi/rag/       # RAG pipeline (loader, embedder, retriever)
+  siwi/agent/     # lightweight agent router + tools
+  graph_backend/  # optional NebulaGraph + PyG
+data/demo_docs/   # built-in RAG documents
 ```
 
-## 技术细节
+---
 
-### NebulaFeatureStore
+## ⚡ 快速开始（≤3 步）
 
-实现了 PyG 的 `FeatureStore` 抽象类，提供以下核心功能：
-
-- **_get_tensor**: 从 NebulaGraph 获取节点特征
-- **_get_tensor_size**: 获取特征张量的大小
-- **_put_tensor**: 将特征存储到 NebulaGraph
-- **_remove_tensor**: 从 NebulaGraph 移除特征
-- **get_all_tensor_attrs**: 获取所有可用特征属性
-
-### NebulaGraphStore
-
-实现了 PyG 的 `GraphStore` 抽象类，提供以下核心功能：
-
-- **_get_edge_index**: 获取边索引，返回 COO 格式的边表示
-- **_put_edge_index**: 将边索引存储到 NebulaGraph
-- **_remove_edge_index**: 从 NebulaGraph 移除边索引
-- **get_all_edge_attrs**: 获取所有可用的边类型
-
-### SubgraphSampler
-
-负责从 NebulaGraph 高效地采样子图：
-
-- 支持 `n_hops` 参数指定采样的跳数
-- 支持通过 nGQL 查询语言高效获取子图结构
-- 自动处理 NebulaGraph 的字符串 VID 和 PyG 的数字索引之间的映射
-- 提供边类型过滤和节点类型识别
-
-### ID 映射机制
-
-项目实现了灵活的 ID 映射机制，解决了 NebulaGraph 使用字符串 VID 而 PyG 使用数字索引的不兼容问题：
-
-- `id_to_idx` 和 `idx_to_id` 提供双向映射
-- 支持自定义 ID 映射器函数
-- 确保在所有操作中保持 ID 映射的一致性
-
-## 使用示例
-
-### 基本使用
-
-```python
-from siwi.pyg_integration import NebulaToTorch
-
-# 创建集成类实例
-converter = NebulaToTorch(space_name="basketballplayer")
-
-# 获取节点特征
-player_ids = ["player142", "player117"]  # 姚明和库里
-features = converter.get_node_features(player_ids, "player")
-
-# 获取子图
-center_nodes = ["player142"]  # 以姚明为中心
-subgraph = converter.get_subgraph(center_nodes, n_hops=1)
-
-# 子图信息
-print(f"节点数: {subgraph['num_nodes']}")
-print(f"边数: {len(subgraph['edge_index'][0])}")
-```
-
-### 与 PyG 模型集成
-
-```python
-import torch
-import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from siwi.pyg_integration import NebulaToTorch
-
-# 定义GCN模型
-class GCN(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels):
-        super().__init__()
-        self.conv1 = GCNConv(in_channels, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, out_channels)
-    
-    def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = self.conv2(x, edge_index)
-        return x
-
-# 获取数据
-converter = NebulaToTorch()
-subgraph = converter.get_subgraph(["player142"], n_hops=2)
-
-# 转换为PyG数据格式
-x = torch.tensor(subgraph["features"], dtype=torch.float)
-edge_index = torch.tensor(subgraph["edge_index"], dtype=torch.long)
-
-# 初始化并运行模型
-model = GCN(in_channels=x.size(1), hidden_channels=16, out_channels=2)
-out = model(x, edge_index)
-```
-
-## 安装依赖
+### 1) 配置
 
 ```bash
-pip install -r requirements.txt
+cp .env.example .env
+# 默认 LLM_PROVIDER=gemini；RAG/Agent/Graph 均关闭
 ```
 
-主要依赖:
-- nebula3-python: NebulaGraph Python客户端
-- torch: PyTorch深度学习框架
-- torch-geometric: PyTorch几何图神经网络库
-
-## 测试
-
-可以使用提供的测试脚本验证集成功能是否正常工作：
+### 2) 安装依赖
 
 ```bash
-python test_pyg_integration.py
+uv pip install -r requirements.txt
 ```
 
-## 注意事项
+### 3) 启动后端
 
-- 确保 NebulaGraph 服务正在运行，并配置了正确的连接参数
-- 对于大规模图，建议适当调整跳数和最大节点数限制
-- 本项目主要用于演示和研究目的，生产环境中可能需要进一步优化
+```bash
+UV_CACHE_DIR=.uv_cache PYTHONPATH=src uv run --no-project python -m siwi.api.app
+```
+
+前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+访问：`http://localhost:5173`
+
+---
+
+## 💬 API (`POST /api/chat`)
+
+Request:
+
+```json
+{
+  "message": "这个项目是做什么的？"
+}
+```
+
+Response:
+
+```json
+{
+  "answer": "...",
+  "sources": [...],
+  "meta": {
+    "mode": "llm_only | text_rag | graph",
+    "llm_provider": "GeminiLLMClient",
+    "agent_enabled": false
+  },
+  "trace": [...]
+}
+```
+
+---
+
+## 🔍 RAG 设计
+
+* 文档加载（`.txt` / `.md`）自动切分 chunk
+* 向量化：TF-IDF → fallback（无 sklearn 时仍可运行）
+* 检索：余弦相似度 / 关键词召回
+* 统一输出：sources + meta
+* 失败不崩溃 → 自动回退到 LLM-only
+
+---
+
+## 🧪 Agent 设计
+
+* intent classifier：`graph / text`
+* router → 调用对应工具
+* 可插拔 Tools：支持未来扩展 Search / Function Calling
+* trace 记录 → 可用于可观测性与运营分析
+
+---
+
+## 🧱 技术亮点
+
+* 对 legacy GNN PoC 进行了 **模块化重构**，建立统一 API 与可维护结构
+* 通过环境变量（env）驱动运行模式：LLM-only / RAG / Agent / Graph
+* 前端完全重写，实现了 **Gemini-style UI**（体现产品 sense）
+* RAG pipeline 完全自定义，可脱离外部服务运行
+* Agent 层设计参考 Claude/ChatGPT Tool Router（展示对热点理解）
+* 为未来 GraphRAG / 多工具协作预留接口
+* tests 覆盖 RAG + API（pytest）
+
+---
+
+## 🛠 未来计划
+
+* [ ] Function Calling 模式
+* [ ] Streaming 输出
+* [ ] 多工具协作（Sequential Planner）
+* [ ] GraphRAG v1（图检索 + 文档检索融合）
+* [ ] UI 添加 Source 高亮 / 工具调用可视化
+* [ ] API-Key 前端设置面板
+
+---
+
+## 📄 License
+
+Apache-2.0

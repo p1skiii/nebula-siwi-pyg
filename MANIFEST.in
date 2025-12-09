@@ -1,2 +1,2 @@
-include src/siwi/bot/test/data/*.yaml
 include README.md
+recursive-include data/demo_docs *.txt *.md

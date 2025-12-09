@@ -1,0 +1,1 @@
+Quickstart: install dependencies, run `python -m siwi.api.app`, then send POST /api/chat with a JSON body containing a "message" field. The API returns an answer and a list of source snippets. You can add more documents under data/demo_docs to customize retrieval without touching code.

@@ -1,0 +1,5 @@
+# Optional dependencies for the graph backend (NebulaGraph + PyG)
+nebula3-python
+torch>=1.10.0
+torch-geometric>=2.0.0
+pyyaml
